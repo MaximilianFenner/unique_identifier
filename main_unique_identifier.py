@@ -1,15 +1,58 @@
 import os
 import sys
+import ctypes
+import importlib.util
+import subprocess
+
+
+REQUIRED_PACKAGES = {
+    'cv2': 'opencv-python',
+    'numpy': 'numpy',
+    'mss': 'mss',
+    'playsound': 'playsound==1.2.2',
+}
+
+
+def install_missing_packages():
+    """Install dependencies that are not available in the current interpreter."""
+    if getattr(sys, 'frozen', False):
+        return
+
+    missing_packages = [
+        package
+        for module, package in REQUIRED_PACKAGES.items()
+        if importlib.util.find_spec(module) is None
+    ]
+
+    if not missing_packages:
+        return
+
+    print(f'Installing missing packages: {", ".join(missing_packages)}')
+    try:
+        subprocess.check_call(
+            [sys.executable, '-m', 'pip', 'install', *missing_packages]
+        )
+    except (OSError, subprocess.CalledProcessError) as error:
+        raise RuntimeError(
+            'Could not install the required Python packages. '
+            'Install them manually with: '
+            f'{sys.executable} -m pip install {" ".join(missing_packages)}'
+        ) from error
+
+
+install_missing_packages()
+
 import cv2 as cv
 import numpy as np
 import mss
 from playsound import playsound
-import ctypes
+
 
 bundle_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
-path_to_headhunter = os.path.abspath(os.path.join(bundle_dir, 'Headhunter.png'))
-path_to_Mageblood = os.path.abspath(os.path.join(bundle_dir, 'Mageblood.png'))
-path_to_Soundfile = os.path.abspath(os.path.join(bundle_dir, 'Meme_money.mp3'))
+assets_dir = os.path.join(bundle_dir, 'assets')
+path_to_headhunter = os.path.abspath(os.path.join(assets_dir, 'Headhunter.png'))
+path_to_Mageblood = os.path.abspath(os.path.join(assets_dir, 'Mageblood.png'))
+path_to_Soundfile = os.path.abspath(os.path.join(assets_dir, 'Meme_money.mp3'))
 
 
 # get screen resolution and scaling factor
@@ -99,4 +142,3 @@ with mss.mss() as sct:
         if cv.waitKey(25) & 255 == ord('q'):
             cv.destroyAllWindows()
             break
-
